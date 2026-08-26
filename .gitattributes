@@ -1,0 +1,9 @@
+# Forca terminacao de linha LF em todos os arquivos de texto.
+# Motivo: o projeto e editado do lado Windows e compilado no WSL. Um Makefile
+# com CRLF faz o make passar o \r colado no fim do comando para o shell, que
+# tenta executar "gcc -Wall\r" e falha com erro ilegivel.
+* text=auto eol=lf
+
+# Os .pgm sao gerados pelo programa; se algum dia forem versionados, nao devem
+# sofrer conversao de fim de linha.
+*.pgm -text

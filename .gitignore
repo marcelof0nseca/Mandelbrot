@@ -1,0 +1,29 @@
+# --- binario e objetos ---
+mandelbrot
+*.o
+
+# --- saidas geradas pela execucao ---
+# Os .pgm sao regenerados por qualquer execucao e passam de 4 MB cada em
+# 1024x1024. Nao entram no repositorio; entram no .tar apenas se pedido.
+*.pgm
+times.txt
+
+# --- evidencias ---
+# O evidencias.log vai DENTRO do .tar da entrega, mas nao no git: ele cresce a
+# cada sessao e poluiria todo diff.
+evidencias.log
+
+# --- arquivos de trabalho (nao entram na entrega) ---
+PLANEJAMENTO.md
+ROTEIRO_DE_TESTES.md
+diario.md
+MATERIAL_RELATORIO.md
+
+# --- pacote de entrega ---
+*.tar
+*.tar.gz
+
+# --- descartaveis ---
+teste_flags
+teste_flags.c
+saida_stdout.txt
