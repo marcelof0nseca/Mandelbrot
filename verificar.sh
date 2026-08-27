@@ -37,13 +37,17 @@ head -1 mandelbrot_maf_serial.pgm | wc -w
 # 6) normalizacao: menor e maior valor presentes no arquivo
 tr ' ' '\n' < mandelbrot_maf_serial.pgm | sort -n | sed -n '1p;$p'
 
-# 7) igualdade entre as implementacoes (com uma so, imprime um hash)
+# 7) igualdade entre as implementacoes
 md5sum mandelbrot_maf_*.pgm
+
+# 8) quantos hashes DIFERENTES existem: tem que ser exatamente 1
+md5sum mandelbrot_maf_*.pgm | awk '{print $1}' | sort -u | wc -l
 
 set +x
 
 rm -f saida_stdout.txt
 echo "--------------------------------------------------------------"
 echo "ESPERADO: stdout 0 bytes | ${ALTURA} linhas | ${LARGURA} valores"
-echo "          menor valor 0 | maior valor 255 | hashes iguais"
+echo "          menor valor 0 | maior valor 255"
+echo "          hashes distintos: 1  (item 8 acima)"
 echo "--------------------------------------------------------------"
