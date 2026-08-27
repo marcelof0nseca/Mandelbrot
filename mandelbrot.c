@@ -24,17 +24,26 @@ int mandelbrot_ponto(double cr, double ci, int max_iter)
     return i;
 }
 
-/* (x + 0.5) e o centro do pixel; dividir por largura, e nao por (largura - 1),
- * mantem o calculo valido quando largura vale 1. */
+/* Mapeamento pixel -> plano complexo, fixado pelos casos de teste oficiais.
+ *
+ * Usa o CANTO do pixel (x, e nao x + 0.5) e comeca pelo MINIMO do eixo
+ * imaginario (linha 0 = -1,5, subindo). Amostrar pelo centro seria mais
+ * correto do ponto de vista de imagem, e comecar por cima seria a convencao
+ * usual, mas as duas escolhas quebram o gabarito: com altura par, este
+ * mapeamento coloca uma linha exatamente sobre ci = 0, onde todo cr em
+ * [-2 ; 0,25] pertence ao conjunto e devolve 255. E o que os tres arquivos de
+ * teste do professor mostram, e foi verificado ponto a ponto no teste 4x4.
+ *
+ * Dividir por largura, e nao por (largura - 1), tambem mantem o calculo
+ * valido quando largura vale 1. */
 double coord_real(int x, const Params *p)
 {
-    return REAL_MIN + ((double)x + 0.5) * (REAL_MAX - REAL_MIN) / (double)p->largura;
+    return REAL_MIN + (double)x * (REAL_MAX - REAL_MIN) / (double)p->largura;
 }
 
-/* Subtrai de IMAG_MAX porque a linha 0 e o topo da imagem. */
 double coord_imag(int y, const Params *p)
 {
-    return IMAG_MAX - ((double)y + 0.5) * (IMAG_MAX - IMAG_MIN) / (double)p->altura;
+    return IMAG_MIN + (double)y * (IMAG_MAX - IMAG_MIN) / (double)p->altura;
 }
 
 void calcular_linha(unsigned char *imagem, int y, const Params *p)
