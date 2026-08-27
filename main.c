@@ -16,6 +16,7 @@
 
 /* "maf" = iniciais do e-mail, exigidas pelo enunciado. */
 #define ARQ_SERIAL "mandelbrot_maf_serial.pgm"
+#define ARQ_OPENMP "mandelbrot_maf_openmp.pgm"
 #define ARQ_TIMES  "times.txt"
 
 /* MAX_DIMENSAO e alto de proposito: 100000 x 100000 pede 10 GB e faz o malloc
@@ -26,6 +27,26 @@
 #define MAX_ITER     1000000
 #define MIN_THREADS  1
 #define MAX_THREADS  4096
+
+/* Ponteiro para qualquer uma das implementacoes: todas tem a mesma assinatura. */
+typedef int (*FuncCalculo)(unsigned char *, const Params *);
+
+typedef struct {
+    const char *rotulo;    /* nome usado no times.txt */
+    const char *arquivo;   /* nome do .pgm de saida */
+    FuncCalculo funcao;
+} Implementacao;
+
+/* Tabela unica: adicionar uma implementacao e adicionar uma linha aqui.
+ * Sem ela, cada versao exigiria quatro trechos espalhados pelo main (malloc,
+ * medicao, escrita e linha do times.txt), cada um um lugar a mais para trocar
+ * um buffer pelo outro sem perceber. */
+static const Implementacao IMPLEMENTACOES[] = {
+    { "serial", ARQ_SERIAL, calcular_serial },
+    { "openmp", ARQ_OPENMP, calcular_openmp },
+};
+
+#define NUM_IMPL (sizeof(IMPLEMENTACOES) / sizeof(IMPLEMENTACOES[0]))
 
 static void imprimir_uso(const char *prog)
 {
@@ -110,8 +131,6 @@ static int escrever_pgm(const char *caminho, const unsigned char *imagem,
     return 0;
 }
 
-typedef int (*FuncCalculo)(unsigned char *, const Params *);
-
 /* CLOCK_MONOTONIC e tempo de parede. clock() somaria o tempo de CPU de todas
  * as threads e faria a versao paralela parecer mais lenta que a serial. */
 static int executar_e_medir(FuncCalculo funcao, unsigned char *imagem,
@@ -140,9 +159,9 @@ int main(int argc, char *argv[])
 {
     const char *prog = (argc > 0 && argv[0] != NULL) ? argv[0] : "mandelbrot";
     Params p;
-    size_t total;
-    unsigned char *img_serial = NULL;
-    double t_serial = 0.0;
+    size_t total, i;
+    unsigned char *buffers[NUM_IMPL] = { NULL };
+    double tempos[NUM_IMPL] = { 0.0 };
     FILE *ft = NULL;
     int status = EXIT_FAILURE;
 
@@ -169,24 +188,39 @@ int main(int argc, char *argv[])
     }
     total = (size_t)p.largura * (size_t)p.altura;
 
-    img_serial = malloc(total);
-    if (img_serial == NULL) {
-        fprintf(stderr, "Erro: falha ao alocar %zu bytes para a imagem serial.\n", total);
-        goto limpeza;
+    /* Um buffer por implementacao. Reaproveitar um so mascararia pixels que uma
+     * versao deixou de escrever: o valor da execucao anterior ficaria no lugar. */
+    for (i = 0; i < NUM_IMPL; i++) {
+        buffers[i] = malloc(total);
+        if (buffers[i] == NULL) {
+            fprintf(stderr, "Erro: falha ao alocar %zu bytes para a imagem %s.\n",
+                    total, IMPLEMENTACOES[i].rotulo);
+            goto limpeza;
+        }
     }
 
-    if (executar_e_medir(calcular_serial, img_serial, &p, &t_serial) != 0) {
-        fprintf(stderr, "Erro: falha na execucao da implementacao serial.\n");
-        goto limpeza;
+    /* Mede todas primeiro e so depois escreve: assim a gravacao de megabytes em
+     * disco nao cai entre duas medicoes e contamina a comparacao. */
+    for (i = 0; i < NUM_IMPL; i++) {
+        if (executar_e_medir(IMPLEMENTACOES[i].funcao, buffers[i], &p, &tempos[i]) != 0) {
+            fprintf(stderr, "Erro: falha na execucao da implementacao %s.\n",
+                    IMPLEMENTACOES[i].rotulo);
+            goto limpeza;
+        }
     }
-    if (escrever_pgm(ARQ_SERIAL, img_serial, &p) != 0) goto limpeza;
+
+    for (i = 0; i < NUM_IMPL; i++) {
+        if (escrever_pgm(IMPLEMENTACOES[i].arquivo, buffers[i], &p) != 0) goto limpeza;
+    }
 
     ft = fopen(ARQ_TIMES, "w");
     if (ft == NULL) {
         fprintf(stderr, "Erro: nao foi possivel criar '%s': %s\n", ARQ_TIMES, strerror(errno));
         goto limpeza;
     }
-    fprintf(ft, "serial: %.6f s\n", t_serial);
+    for (i = 0; i < NUM_IMPL; i++) {
+        fprintf(ft, "%s: %.6f s\n", IMPLEMENTACOES[i].rotulo, tempos[i]);
+    }
     if (ferror(ft) || fclose(ft) != 0) {
         fprintf(stderr, "Erro: falha ao escrever '%s': %s\n", ARQ_TIMES, strerror(errno));
         ft = NULL;
@@ -198,6 +232,6 @@ int main(int argc, char *argv[])
 
 limpeza:
     if (ft != NULL) fclose(ft);
-    free(img_serial);
+    for (i = 0; i < NUM_IMPL; i++) free(buffers[i]);
     return status;
 }
