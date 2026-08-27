@@ -63,3 +63,36 @@ int calcular_serial(unsigned char *imagem, const Params *p)
 
     return 0;
 }
+
+int calcular_openmp(unsigned char *imagem, const Params *p)
+{
+    int y;
+
+    /* O que cada clausula faz:
+     *
+     * parallel for      - a libgomp acorda num_threads threads, reparte as
+     *                     iteracoes de y entre elas e poe uma barreira no fim.
+     *                     y vira privado de cada thread automaticamente.
+     *
+     * schedule(dynamic, 1) - cada thread pega UMA linha, termina e volta para
+     *                     pegar a proxima livre. Com static (o padrao) a
+     *                     divisao seria em blocos contiguos, e as threads que
+     *                     pegassem o miolo do conjunto - onde todo ponto roda
+     *                     as max_iter completas - terminariam muito depois das
+     *                     que pegaram as bordas.
+     *
+     * num_threads(...)  - respeita o argumento da linha de comando sem mexer
+     *                     no estado global do runtime, ao contrario de
+     *                     omp_set_num_threads().
+     *
+     * Nao ha condicao de corrida: as threads escrevem no mesmo buffer, mas em
+     * linhas diferentes, ou seja, em faixas de memoria que nao se sobrepoem.
+     * Tudo o que calcular_linha usa e declarado dentro dela, na pilha de cada
+     * thread; p e const e so lido. */
+    #pragma omp parallel for schedule(dynamic, 1) num_threads(p->num_threads)
+    for (y = 0; y < p->altura; y++) {
+        calcular_linha(imagem, y, p);
+    }
+
+    return 0;
+}

@@ -32,5 +32,6 @@ void calcular_linha(unsigned char *imagem, int y, const Params *p);
 
 /* Devolvem 0 em sucesso, valor diferente de 0 em falha. */
 int calcular_serial(unsigned char *imagem, const Params *p);
+int calcular_openmp(unsigned char *imagem, const Params *p);
 
 #endif /* MANDELBROT_H */
