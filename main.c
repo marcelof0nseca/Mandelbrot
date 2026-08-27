@@ -41,9 +41,11 @@ typedef struct {
  * Sem ela, cada versao exigiria quatro trechos espalhados pelo main (malloc,
  * medicao, escrita e linha do times.txt), cada um um lugar a mais para trocar
  * um buffer pelo outro sem perceber. */
+/* Os rotulos seguem exatamente o times.txt de referencia do professor:
+ * "Serial", "OpenMP", "Pthreads1", "Pthreads2" - com inicial maiuscula. */
 static const Implementacao IMPLEMENTACOES[] = {
-    { "serial", ARQ_SERIAL, calcular_serial },
-    { "openmp", ARQ_OPENMP, calcular_openmp },
+    { "Serial", ARQ_SERIAL, calcular_serial },
+    { "OpenMP", ARQ_OPENMP, calcular_openmp },
 };
 
 #define NUM_IMPL (sizeof(IMPLEMENTACOES) / sizeof(IMPLEMENTACOES[0]))
@@ -218,8 +220,10 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Erro: nao foi possivel criar '%s': %s\n", ARQ_TIMES, strerror(errno));
         goto limpeza;
     }
+    /* Formato exato do arquivo de referencia: "Serial: 0.000001s" - seis casas
+     * decimais e sem espaco antes do 's'. */
     for (i = 0; i < NUM_IMPL; i++) {
-        fprintf(ft, "%s: %.6f s\n", IMPLEMENTACOES[i].rotulo, tempos[i]);
+        fprintf(ft, "%s: %.6fs\n", IMPLEMENTACOES[i].rotulo, tempos[i]);
     }
     if (ferror(ft) || fclose(ft) != 0) {
         fprintf(stderr, "Erro: falha ao escrever '%s': %s\n", ARQ_TIMES, strerror(errno));
