@@ -5,8 +5,9 @@ CC = gcc
 
 # -O2       sem otimizacao os tempos ficam varias vezes maiores e achatam a
 #           diferenca entre as implementacoes
-# -fopenmp  habilita os #pragma omp; SEM ela o gcc os ignora em silencio e a
-#           versao "paralela" roda no tempo da serial
+# -fopenmp  habilita os #pragma omp; SEM ela o gcc apenas avisa "ignoring
+#           #pragma omp" e compila mesmo assim - o binario sai correto porem
+#           serial, e o unico sintoma e o speedup ficar em 1,0x
 # -pthread  linka a libpthread e define _REENTRANT; nao e sinonimo de -lpthread
 CFLAGS  = -std=c11 -Wall -Wextra -O2 -fopenmp -pthread
 LDFLAGS = -fopenmp -pthread
