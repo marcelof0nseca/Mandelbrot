@@ -1,0 +1,11 @@
+Comando de entrada:
+./mandelbrot 4 4 50 1
+
+Arquivo a verificar:
+mandelbrot_login_serial.pgm
+
+Conteudo esperado:
+5 10 10 10
+5 15 30 25
+255 255 255 255
+5 15 30 25
