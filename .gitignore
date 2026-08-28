@@ -27,3 +27,7 @@ MATERIAL_RELATORIO.md
 teste_flags
 teste_flags.c
 saida_stdout.txt
+
+# --- ambiente local do editor ---
+# Arquivo do VS Code, especifico desta maquina: nao faz parte da entrega.
+maf.code-workspace
