@@ -30,8 +30,13 @@ double coord_imag(int y, const Params *p);
  * chamam este mesmo codigo e so discordam sobre qual thread pega qual linha. */
 void calcular_linha(unsigned char *imagem, int y, const Params *p);
 
-/* Devolvem 0 em sucesso, valor diferente de 0 em falha. */
+/* Devolvem 0 em sucesso, valor diferente de 0 em falha.
+ *
+ * Estrategia 1 de Pthreads: blocos CONTIGUOS de linhas, divisao estatica
+ * decidida antes de qualquer thread comecar. Escolhida de proposito por ser a
+ * que EXPOE o desbalanceamento do Mandelbrot - ver comentario em mandelbrot.c. */
 int calcular_serial(unsigned char *imagem, const Params *p);
 int calcular_openmp(unsigned char *imagem, const Params *p);
+int calcular_pthreads1(unsigned char *imagem, const Params *p);
 
 #endif /* MANDELBROT_H */
