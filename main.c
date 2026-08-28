@@ -15,9 +15,10 @@
 #include "mandelbrot.h"
 
 /* "maf" = iniciais do e-mail, exigidas pelo enunciado. */
-#define ARQ_SERIAL "mandelbrot_maf_serial.pgm"
-#define ARQ_OPENMP "mandelbrot_maf_openmp.pgm"
-#define ARQ_TIMES  "times.txt"
+#define ARQ_SERIAL    "mandelbrot_maf_serial.pgm"
+#define ARQ_OPENMP    "mandelbrot_maf_openmp.pgm"
+#define ARQ_PTHREADS1 "mandelbrot_maf_pthreads1.pgm"
+#define ARQ_TIMES     "times.txt"
 
 /* MAX_DIMENSAO e alto de proposito: 100000 x 100000 pede 10 GB e faz o malloc
  * falhar, que e um dos casos de erro que o enunciado manda tratar. */
@@ -44,8 +45,9 @@ typedef struct {
 /* Os rotulos seguem exatamente o times.txt de referencia do professor:
  * "Serial", "OpenMP", "Pthreads1", "Pthreads2" - com inicial maiuscula. */
 static const Implementacao IMPLEMENTACOES[] = {
-    { "Serial", ARQ_SERIAL, calcular_serial },
-    { "OpenMP", ARQ_OPENMP, calcular_openmp },
+    { "Serial",    ARQ_SERIAL,    calcular_serial },
+    { "OpenMP",    ARQ_OPENMP,    calcular_openmp },
+    { "Pthreads1", ARQ_PTHREADS1, calcular_pthreads1 },
 };
 
 #define NUM_IMPL (sizeof(IMPLEMENTACOES) / sizeof(IMPLEMENTACOES[0]))
