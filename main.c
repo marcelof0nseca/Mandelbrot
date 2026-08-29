@@ -1,8 +1,5 @@
-/* main.c - argumentos, alocacao, cronometro e escrita das saidas.
- * Regra do arquivo: nada vai para stdout; toda mensagem de erro sai por stderr. */
-
 #ifndef _POSIX_C_SOURCE
-#define _POSIX_C_SOURCE 200809L   /* libera clock_gettime sob -std=c11 */
+#define _POSIX_C_SOURCE 200809L
 #endif
 
 #include <stdio.h>
@@ -14,14 +11,12 @@
 
 #include "mandelbrot.h"
 
-/* "maf" = iniciais do e-mail, exigidas pelo enunciado. */
 #define ARQ_SERIAL    "mandelbrot_maf_serial.pgm"
 #define ARQ_OPENMP    "mandelbrot_maf_openmp.pgm"
 #define ARQ_PTHREADS1 "mandelbrot_maf_pthreads1.pgm"
+#define ARQ_PTHREADS2 "mandelbrot_maf_pthreads2.pgm"
 #define ARQ_TIMES     "times.txt"
 
-/* MAX_DIMENSAO e alto de proposito: 100000 x 100000 pede 10 GB e faz o malloc
- * falhar, que e um dos casos de erro que o enunciado manda tratar. */
 #define MIN_DIMENSAO 1
 #define MAX_DIMENSAO 100000
 #define MIN_ITER     1
@@ -29,25 +24,19 @@
 #define MIN_THREADS  1
 #define MAX_THREADS  4096
 
-/* Ponteiro para qualquer uma das implementacoes: todas tem a mesma assinatura. */
 typedef int (*FuncCalculo)(unsigned char *, const Params *);
 
 typedef struct {
-    const char *rotulo;    /* nome usado no times.txt */
-    const char *arquivo;   /* nome do .pgm de saida */
+    const char *rotulo;
+    const char *arquivo;
     FuncCalculo funcao;
 } Implementacao;
 
-/* Tabela unica: adicionar uma implementacao e adicionar uma linha aqui.
- * Sem ela, cada versao exigiria quatro trechos espalhados pelo main (malloc,
- * medicao, escrita e linha do times.txt), cada um um lugar a mais para trocar
- * um buffer pelo outro sem perceber. */
-/* Os rotulos seguem exatamente o times.txt de referencia do professor:
- * "Serial", "OpenMP", "Pthreads1", "Pthreads2" - com inicial maiuscula. */
 static const Implementacao IMPLEMENTACOES[] = {
     { "Serial",    ARQ_SERIAL,    calcular_serial },
     { "OpenMP",    ARQ_OPENMP,    calcular_openmp },
     { "Pthreads1", ARQ_PTHREADS1, calcular_pthreads1 },
+    { "Pthreads2", ARQ_PTHREADS2, calcular_pthreads2 },
 };
 
 #define NUM_IMPL (sizeof(IMPLEMENTACOES) / sizeof(IMPLEMENTACOES[0]))
@@ -57,8 +46,6 @@ static void imprimir_uso(const char *prog)
     fprintf(stderr, "Uso: %s [largura] [altura] [max_iteracoes] [num_threads]\n", prog);
 }
 
-/* strtol e nao atoi: atoi devolve 0 para "abc", aceita "12xyz" como 12 e tem
- * comportamento indefinido em estouro. Devolve 0 em sucesso, -1 em erro. */
 static int ler_inteiro(const char *texto, const char *nome,
                        int minimo, int maximo, int *saida)
 {
@@ -73,11 +60,11 @@ static int ler_inteiro(const char *texto, const char *nome,
     errno = 0;
     valor = strtol(texto, &fim, 10);
 
-    if (fim == texto) {   /* strtol nao consumiu digito nenhum */
+    if (fim == texto) {
         fprintf(stderr, "Erro: %s ('%s') nao e um numero inteiro.\n", nome, texto);
         return -1;
     }
-    if (*fim != '\0') {   /* sobrou lixo: rejeita "12abc", "3.5", "10 " */
+    if (*fim != '\0') {
         fprintf(stderr, "Erro: %s ('%s') contem caractere invalido em '%s'.\n",
                 nome, texto, fim);
         return -1;
@@ -96,8 +83,6 @@ static int ler_inteiro(const char *texto, const char *nome,
     return 0;
 }
 
-/* Saida sem cabecalho: um valor por pixel, separados por espaco, uma linha de
- * texto por linha da imagem. */
 static int escrever_pgm(const char *caminho, const unsigned char *imagem,
                         const Params *p)
 {
@@ -109,7 +94,7 @@ static int escrever_pgm(const char *caminho, const unsigned char *imagem,
         fprintf(stderr, "Erro: nao foi possivel criar '%s': %s\n", caminho, strerror(errno));
         return -1;
     }
-    setvbuf(f, NULL, _IOFBF, 1024 * 1024);   /* evita milhoes de escritas pequenas */
+    setvbuf(f, NULL, _IOFBF, 1024 * 1024);
 
     for (y = 0; y < p->altura; y++) {
         const size_t base = (size_t)y * (size_t)p->largura;
@@ -121,7 +106,6 @@ static int escrever_pgm(const char *caminho, const unsigned char *imagem,
         fputc('\n', f);
     }
 
-    /* Erro de escrita so aparece aqui: as chamadas acima vao para o buffer. */
     if (ferror(f)) {
         fprintf(stderr, "Erro: falha ao escrever em '%s': %s\n", caminho, strerror(errno));
         fclose(f);
@@ -135,8 +119,6 @@ static int escrever_pgm(const char *caminho, const unsigned char *imagem,
     return 0;
 }
 
-/* CLOCK_MONOTONIC e tempo de parede. clock() somaria o tempo de CPU de todas
- * as threads e faria a versao paralela parecer mais lenta que a serial. */
 static int executar_e_medir(FuncCalculo funcao, unsigned char *imagem,
                             const Params *p, double *tempo)
 {
@@ -184,16 +166,12 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    /* Checa o estouro ANTES de multiplicar: sem isto o produto daria a volta e
-     * o malloc seria pequeno demais, gravando fora do buffer sem erro visivel. */
     if ((size_t)p.altura > SIZE_MAX / (size_t)p.largura) {
         fprintf(stderr, "Erro: largura x altura excede o tamanho representavel.\n");
         return EXIT_FAILURE;
     }
     total = (size_t)p.largura * (size_t)p.altura;
 
-    /* Um buffer por implementacao. Reaproveitar um so mascararia pixels que uma
-     * versao deixou de escrever: o valor da execucao anterior ficaria no lugar. */
     for (i = 0; i < NUM_IMPL; i++) {
         buffers[i] = malloc(total);
         if (buffers[i] == NULL) {
@@ -203,8 +181,6 @@ int main(int argc, char *argv[])
         }
     }
 
-    /* Mede todas primeiro e so depois escreve: assim a gravacao de megabytes em
-     * disco nao cai entre duas medicoes e contamina a comparacao. */
     for (i = 0; i < NUM_IMPL; i++) {
         if (executar_e_medir(IMPLEMENTACOES[i].funcao, buffers[i], &p, &tempos[i]) != 0) {
             fprintf(stderr, "Erro: falha na execucao da implementacao %s.\n",
@@ -222,8 +198,6 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Erro: nao foi possivel criar '%s': %s\n", ARQ_TIMES, strerror(errno));
         goto limpeza;
     }
-    /* Formato exato do arquivo de referencia: "Serial: 0.000001s" - seis casas
-     * decimais e sem espaco antes do 's'. */
     for (i = 0; i < NUM_IMPL; i++) {
         fprintf(ft, "%s: %.6fs\n", IMPLEMENTACOES[i].rotulo, tempos[i]);
     }
